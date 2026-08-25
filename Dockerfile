@@ -1,66 +1,38 @@
-# FROM node:24-bookworm-slim
-
-# WORKDIR /app
-
-# COPY package.json ./
-
-# RUN npm install --omit=dev
-
-# COPY app.js .
-
-# EXPOSE 3000
-
-# USER node
-
-# CMD ["node", "app.js"]
-
-
-# FROM node:24-bookworm-slim
-
-# WORKDIR /app
-
-# RUN groupadd --system appuser && \
-#     useradd --system --gid appuser --create-home appuser
-
-# COPY package.json ./
-
-# RUN npm install --omit=dev
-
-# COPY app.js .
-
-# RUN chown -R appuser:appuser /app
-
-# USER appuser
-
-# EXPOSE 3000
-
-# CMD ["node", "app.js"]
-
-
-
-FROM node:24-bookworm-slim as builder
+# =========================
+# Build stage
+# =========================
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
-
-RUN groupadd --system appuser && \
-    useradd --system --gid appuser --create-home appuser
 
 COPY package.json ./
 
 RUN npm install --omit=dev
 
-COPY . .
+COPY app.js .
 
-#runtime
 
-FROM node:25-slim
+# =========================
+# Runtime stage
+# =========================
+FROM node:24-bookworm-slim
 
-COPY --from=builder /build/node_modules ./node_modules
+WORKDIR /app
 
-COPY --from=builder /build/app.js ./app.js
+# Create non-root application user
+RUN groupadd --system appuser && \
+    useradd --system \
+    --gid appuser \
+    --create-home appuser
 
+# Copy only what is required at runtime
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/app.js ./app.js
+
+# Give application user ownership
 RUN chown -R appuser:appuser /app
 
+# Run application as non-root
 USER appuser
 
 EXPOSE 3000
