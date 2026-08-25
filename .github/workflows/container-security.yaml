@@ -45,9 +45,23 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t node-container-security:${{ github.sha }} \
+            -t container-security:${{ github.sha }} \
             .
+      - name: Verify container runs as non-root
+        run: |
+          docker run -d --name security-test \
+            container-security:${{ github.sha }}
 
+          echo "Container configured user:"
+          docker inspect security-test --format='{{.Config.User}}'
+
+          echo "Actual container user:"
+          docker exec security-test whoami
+
+          echo "Container UID:"
+          docker exec security-test id
+
+          docker rm -f security-test
       # -------------------------------
       # Install Trivy
       # -------------------------------
@@ -69,7 +83,7 @@ jobs:
       - name: Verify Trivy
         run: |
           trivy --version
-
+     
       # -------------------------------
       # Container vulnerability scan
       # -------------------------------
@@ -90,3 +104,7 @@ jobs:
             --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --exit-code 1
+
+
+
+
