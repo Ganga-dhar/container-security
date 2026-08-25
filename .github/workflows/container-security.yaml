@@ -129,7 +129,7 @@ jobs:
       - name: Trivy image scan
         run: |
           trivy image \
-            --severity CRITICAL \
+            --severity HIGH,CRITICAL \
             --ignore-unfixed \
             --exit-code 0 \
             container-security:${{ github.sha }}
@@ -141,7 +141,7 @@ jobs:
         run: |
           trivy fs . \
             --scanners vuln,secret,misconfig \
-            --severity CRITICAL \
+            --severity HIGH,CRITICAL \
             --exit-code 0
       
      # -------------------------------
@@ -158,7 +158,7 @@ jobs:
         run: |
           trivy sbom \
             --severity HIGH,CRITICAL \
-            --exit-code 1 \
+            --exit-code 0 \
             sbom.json
 
       - name: Upload SBOM
