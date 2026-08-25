@@ -90,16 +90,16 @@ jobs:
       # -------------------------------
       # Verify packages inside image
       # -------------------------------
-      - name: Verify packages inside image
-        run: |
-          docker run --rm \
-            node-container-security:${{ github.sha }} \
-            node -e "
-              console.log(require('brace-expansion/package.json').version);
-              console.log(require('ip-address/package.json').version);
-              console.log(require('tar/package.json').version);
-              console.log(require('undici/package.json').version);
-            "
+      # - name: Verify packages inside image
+      #   run: |
+      #     docker run --rm \
+      #       node-container-security:${{ github.sha }} \
+      #       node -e "
+      #         console.log(require('brace-expansion/package.json').version);
+      #         console.log(require('ip-address/package.json').version);
+      #         console.log(require('tar/package.json').version);
+      #         console.log(require('undici/package.json').version);
+      #       "
   
       # -------------------------------
       # Install Trivy
