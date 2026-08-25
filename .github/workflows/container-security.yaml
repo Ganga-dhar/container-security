@@ -38,7 +38,20 @@ jobs:
         run: |
           node --version
           npm --version
-
+      - name: Generate dependencies
+        run: |
+          docker run --rm \
+            -v "$PWD:/app" \
+            -w /app \
+            node:24-bookworm-slim \
+            npm install
+      - name: Check dependency versions
+        run: |
+          docker run --rm \
+            -v "$PWD:/app" \
+            -w /app \
+            node:24-bookworm-slim \
+            npm ls brace-expansion ip-address tar undici
       # -------------------------------
       # Docker Build
       # -------------------------------
@@ -62,6 +75,42 @@ jobs:
           docker exec security-test id
 
           docker rm -f security-test
+      
+      # -------------------------------
+      # Verify packages inside image
+      # -------------------------------
+      - name: Verify packages inside image
+        run: |
+          docker run --rm \
+            node-container-security:${{ github.sha }} \
+            node -e "
+              console.log(require('brace-expansion/package.json').version);
+              console.log(require('ip-address/package.json').version);
+              console.log(require('tar/package.json').version);
+              console.log(require('undici/package.json').version);
+            "
+      # -------------------------------
+      # SBOM
+      # -------------------------------
+      - name: Generate SBOM
+        run: |
+          trivy image \
+            --format cyclonedx \
+            --output sbom.json \
+            node-container-security:${{ github.sha }}
+
+      - name: Scan SBOM
+        run: |
+          trivy sbom \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-sbom
+          path: sbom.json
       # -------------------------------
       # Install Trivy
       # -------------------------------
@@ -104,6 +153,29 @@ jobs:
             --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --exit-code 1
+      
+     # -------------------------------
+      # SBOM
+      # -------------------------------
+      - name: Generate SBOM
+        run: |
+          trivy image \
+            --format cyclonedx \
+            --output sbom.json \
+            node-container-security:${{ github.sha }}
+
+      - name: Scan SBOM
+        run: |
+          trivy sbom \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-sbom
+          path: sbom.json
 
 
 
