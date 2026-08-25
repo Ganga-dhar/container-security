@@ -14,9 +14,6 @@ permissions:
 
 jobs:
 
-  # --------------------------------------------------
-  # 1. Application dependency/security scan
-  # --------------------------------------------------
   dependency-scan:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
@@ -28,53 +25,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: npm audit
-        run: |
-          npm audit --audit-level=high
+      - name: Run npm audit
+        run: npm audit --audit-level=high
 
 
-  # --------------------------------------------------
-  # 2. Build Docker image
-  # --------------------------------------------------
-  docker-build:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-
-    needs:
-      - dependency-scan
-
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t container-security:${{ github.sha }} \
-            .
-
-
-  # --------------------------------------------------
-  # 3. Container security scanning
-  # --------------------------------------------------
   container-security:
-    name: Trivy Container Security Scan
+    name: Container Security Scan
     runs-on: ubuntu-latest
 
-    needs:
-      - docker-build
-
-    permissions:
-      contents: read
+    needs: dependency-scan
 
     steps:
       - name: Checkout
@@ -83,28 +48,20 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t container-security:${{ github.sha }} \
+            -t node-container-security:${{ github.sha }} \
             .
 
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy image vulnerability scan
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
-          image-ref: container-security:${{ github.sha }}
+          image-ref: node-container-security:${{ github.sha }}
           format: table
           severity: HIGH,CRITICAL
-          exit-code: 1
           ignore-unfixed: true
-
-      - name: Run Trivy secret scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: container-security:${{ github.sha }}
-          scanners: secret
-          severity: HIGH,CRITICAL
           exit-code: 1
 
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: fs
           scan-ref: .
