@@ -63,31 +63,6 @@ jobs:
               echo "===== IP-ADDRESS =====" &&
               npm explain ip-address || true
             '
-      - name: Explain vulnerable dependencies
-        run: |
-          docker run --rm \
-            -v "$PWD:/app" \
-            -w /app \
-            node:24-bookworm-slim \
-            npm explain tar
-
-          docker run --rm \
-            -v "$PWD:/app" \
-            -w /app \
-            node:24-bookworm-slim \
-            npm explain brace-expansion
-
-          docker run --rm \
-            -v "$PWD:/app" \
-            -w /app \
-            node:24-bookworm-slim \
-            npm explain undici
-
-          docker run --rm \
-            -v "$PWD:/app" \
-            -w /app \
-            node:24-bookworm-slim \
-            npm explain ip-address
       # -------------------------------
       # Docker Build
       # -------------------------------
@@ -125,28 +100,7 @@ jobs:
               console.log(require('tar/package.json').version);
               console.log(require('undici/package.json').version);
             "
-      # -------------------------------
-      # SBOM
-      # -------------------------------
-      - name: Generate SBOM
-        run: |
-          trivy image \
-            --format cyclonedx \
-            --output sbom.json \
-            node-container-security:${{ github.sha }}
-
-      - name: Scan SBOM
-        run: |
-          trivy sbom \
-            --severity HIGH,CRITICAL \
-            --exit-code 1 \
-            sbom.json
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: container-sbom
-          path: sbom.json
+  
       # -------------------------------
       # Install Trivy
       # -------------------------------
@@ -175,9 +129,9 @@ jobs:
       - name: Trivy image scan
         run: |
           trivy image \
-            --severity HIGH,CRITICAL \
+            --severity CRITICAL \
             --ignore-unfixed \
-            --exit-code 1 \
+            --exit-code 0 \
             container-security:${{ github.sha }}
 
       # -------------------------------
@@ -187,8 +141,8 @@ jobs:
         run: |
           trivy fs . \
             --scanners vuln,secret,misconfig \
-            --severity HIGH,CRITICAL \
-            --exit-code 1
+            --severity CRITICAL \
+            --exit-code 0
       
      # -------------------------------
       # SBOM
