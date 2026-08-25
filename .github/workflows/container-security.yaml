@@ -93,7 +93,7 @@ jobs:
             --severity HIGH,CRITICAL \
             --ignore-unfixed \
             --exit-code 1 \
-            node-container-security:${{ github.sha }}
+            container-security:${{ github.sha }}
 
       # -------------------------------
       # Filesystem security scan
