@@ -23,8 +23,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Node is only needed to build/test the application.
-      # Docker will actually install the Node dependencies.
+      # -------------------------------
+      # Node.js
+      # -------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -33,31 +34,59 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run application test
+      - name: Verify Node
         run: |
           node --version
           npm --version
 
+      # -------------------------------
+      # Docker Build
+      # -------------------------------
       - name: Build Docker image
         run: |
           docker build \
             -t node-container-security:${{ github.sha }} \
             .
 
-      - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: node-container-security:${{ github.sha }}
-          format: table
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 1
+      # -------------------------------
+      # Install Trivy
+      # -------------------------------
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
 
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Verify Trivy
+        run: |
+          trivy --version
+
+      # -------------------------------
+      # Container vulnerability scan
+      # -------------------------------
+      - name: Trivy image scan
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            node-container-security:${{ github.sha }}
+
+      # -------------------------------
+      # Filesystem security scan
+      # -------------------------------
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,secret,misconfig
-          severity: HIGH,CRITICAL
-          exit-code: 1
+        run: |
+          trivy fs . \
+            --scanners vuln,secret,misconfig \
+            --severity HIGH,CRITICAL \
+            --exit-code 1
