@@ -152,7 +152,7 @@ jobs:
           trivy image \
             --format cyclonedx \
             --output sbom.json \
-            node-container-security:${{ github.sha }}
+            container-security:${{ github.sha }}
 
       - name: Scan SBOM
         run: |
