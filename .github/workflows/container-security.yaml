@@ -46,13 +46,23 @@ jobs:
             node:24-bookworm-slim \
             npm install
             
-      # - name: Check dependency versions
-      #   run: |
-      #     docker run --rm \
-      #       -v "$PWD:/app" \
-      #       -w /app \
-      #       node:24-bookworm-slim \
-      #       npm ls brace-expansion ip-address tar undici
+      - name: Install and inspect dependencies
+        run: |
+          docker run --rm \
+            -v "$PWD:/app" \
+            -w /app \
+            node:24-bookworm-slim \
+            sh -c '
+              npm install &&
+              echo "===== TAR =====" &&
+              npm explain tar || true &&
+              echo "===== BRACE-EXPANSION =====" &&
+              npm explain brace-expansion || true &&
+              echo "===== UNDICI =====" &&
+              npm explain undici || true &&
+              echo "===== IP-ADDRESS =====" &&
+              npm explain ip-address || true
+            '
       - name: Explain vulnerable dependencies
         run: |
           docker run --rm \
